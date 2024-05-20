@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FavoriteEntryDao {
     @Insert
-    suspend fun insert(favoriteEntry: FavoriteEntry)
+    suspend fun insert(favorite: favorite)
 
     @Delete
-    suspend fun delete(favoriteEntry: FavoriteEntry)
+    suspend fun delete(favorite: favorite)
 
-    @Query("SELECT * FROM FavoriteEntry")
-    fun favoritesList(): Flow<List<FavoriteEntry>>
+    @Query("SELECT * FROM favorite")
+    fun favoritesList(): Flow<List<favorite>>
 }

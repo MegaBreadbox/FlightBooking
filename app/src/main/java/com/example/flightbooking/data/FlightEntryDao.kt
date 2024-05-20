@@ -7,7 +7,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FlightEntryDao {
-    @Query ("SELECT * FROM FlightEntry WHERE name LIKE '%' || :search || '%'" +
+    @Query (
+        "SELECT * FROM airport WHERE name LIKE '%' || :search || '%'" +
             "OR iata_code LIKE '%' || :search || '%'")
-    fun searchFlight(search: String): Flow<List<FlightEntry>>
+    fun searchFlight(search: String): Flow<List<airport>>
 }
