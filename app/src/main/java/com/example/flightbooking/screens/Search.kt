@@ -1,5 +1,6 @@
 package com.example.flightbooking.screens
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,13 +35,15 @@ fun SearchScreen(
     searchViewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory),
 ) {
     val flights by searchViewModel.flightsUiState.collectAsState()
+    val searchText by searchViewModel.searchText.collectAsState()
     Column(
         modifier = modifier.fillMaxSize()
     ) {
         SearchBar(
-            query = searchViewModel.searchText,
+            query = searchText,
             onQueryChange = {
-                searchViewModel.changeText(it) 
+                searchViewModel.changeText(it)
+                Log.d("RecomposeCheck", "$flights")
             },
             onSearch = {  },
             active = searchViewModel.searchActive,
@@ -54,7 +57,7 @@ fun SearchScreen(
             },
             trailingIcon = {
                 SearchTrailingIcon(
-                    searchText = searchViewModel.searchText,
+                    searchText = searchText,
                     changeText = { searchViewModel.changeText(it) }
                 )
             },

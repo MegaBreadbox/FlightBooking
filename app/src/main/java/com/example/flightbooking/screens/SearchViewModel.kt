@@ -1,5 +1,6 @@
 package com.example.flightbooking.screens
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,30 +13,46 @@ import com.example.flightbooking.FlightApplication
 import com.example.flightbooking.data.FavoriteRepository
 import com.example.flightbooking.data.airport
 import com.example.flightbooking.data.FlightRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.flow.update
 
 class SearchViewModel(
     private val flightRepository: FlightRepository,
     private val favoriteRepository: FavoriteRepository
 ): ViewModel() {
-    var searchText by mutableStateOf("")
-        private set
 
     var searchActive by mutableStateOf(false)
         private set
 
-    val flightsUiState: StateFlow<List<airport>> = flightRepository.searchFlight(searchText).map { it }
+    private val _searchText = MutableStateFlow("")
+    val searchText = _searchText.asStateFlow()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val flightsUiState = searchText
+        .flatMapLatest {searchText ->
+            flightRepository.searchFlight(searchText)
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(TIMEOUT_DELAY),
-            initialValue = listOf()
+            initialValue = emptyList()
         )
 
     fun changeText(input: String) {
-        searchText = input
+        _searchText.update { input }
     }
 
     fun changeActive(input: Boolean) {
