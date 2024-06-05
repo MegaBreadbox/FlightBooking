@@ -7,4 +7,8 @@ class FlightOfflineRepository(private val flightDao: FlightEntryDao): FlightRepo
         return flightDao.searchFlight(search)
     }
 
+    override suspend fun eligibleFlights(search: String): List<airport> {
+        return flightDao.eligibleFlights(search)
+    }
+
 }

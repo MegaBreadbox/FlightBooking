@@ -11,4 +11,9 @@ interface FlightEntryDao {
         "SELECT * FROM airport WHERE name LIKE '%' || :search || '%'" +
             "OR iata_code LIKE '%' || :search || '%'")
     fun searchFlight(search: String): Flow<List<airport>>
+
+    @Query(
+        "SELECT * FROM airport WHERE NOT name = :search"
+    )
+    suspend fun eligibleFlights(search: String): List<airport>
 }

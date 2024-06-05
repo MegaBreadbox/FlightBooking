@@ -40,6 +40,10 @@ class SearchViewModel(
     private val _searchText = MutableStateFlow("")
     val searchText = _searchText.asStateFlow()
 
+    private val _eligibleFlights = MutableStateFlow<List<airport>>(emptyList())
+    val eligibleFlights = _eligibleFlights.asStateFlow()
+
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val flightsUiState = searchText
         .flatMapLatest {searchText ->
@@ -50,6 +54,10 @@ class SearchViewModel(
             started = SharingStarted.WhileSubscribed(TIMEOUT_DELAY),
             initialValue = emptyList()
         )
+
+    suspend fun getEligibleFlights(searchFlight: String) {
+        _eligibleFlights.update { flightRepository.eligibleFlights(searchFlight) }
+    }
 
     fun changeText(input: String) {
         _searchText.update { input }
