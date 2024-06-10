@@ -4,4 +4,9 @@
     <string name="search">Search</string>
     <string name="clear">Clear</string>
     <string name="enter">Enter</string>
+    <string name="depart">DEPART</string>
+    <string name="arrival">ARRIVAL</string>
+    <string name="favorite">Favorite</string>
+    <string name="no_results_found">No results found</string>
+    <string name="unfavorite">Unfavorite</string>
 </resources>

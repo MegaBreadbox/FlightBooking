@@ -1,6 +1,21 @@
 package com.example.flightbooking.screens
 
 import android.util.Log
+import android.widget.ImageButton
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,17 +23,24 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
@@ -32,8 +54,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role.Companion.Button
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -63,18 +90,10 @@ fun SearchScreen(
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        if(flights.size > 0 && !searchViewModel.searchActive) {
-            Log.d("LazyColumnCheck", "$flights")
-            EligibleFlightsList(
-                searchedFlight = flights.first(),
-                flightList = eligibleFlights
-            )
-        }
         SearchBar(
             query = searchText,
             onQueryChange = {
                 searchViewModel.changeText(it)
-                Log.d("RecomposeCheck", "$flights")
             },
             onSearch = {
                 coroutineScope.launch {
@@ -100,13 +119,19 @@ fun SearchScreen(
                     }
                 )
             },
-            modifier = modifier.align(Alignment.CenterHorizontally)
+            modifier = modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = dimensionResource(R.dimen.big_padding))
         ) {
             if(searchText.isNotEmpty()) {
                 SearchList(
                     flightList = flights,
                     onClickSearch = {
-                        searchViewModel.changeText(it)
+                        coroutineScope.launch {
+                            searchViewModel.changeText(it)
+                            searchViewModel.getEligibleFlights(it)
+                            searchViewModel.changeActive(false)
+                        }
                     },
                     onClickFill = {
                         searchViewModel.changeText(it)
@@ -114,7 +139,44 @@ fun SearchScreen(
                 )
             }
         }
+        when(flights.map { it.name}.contains(searchText)) {
+            false ->
+                if(searchText.isEmpty()) {
+
+                } else {
+                    NoSearchResults()
+                }
+            true ->
+                EligibleFlightsList(
+                    searchedFlight = flights.first(),
+                    flightList = eligibleFlights,
+                    modifier = Modifier.weight(1F)
+                )
+
+        }
     }
+}
+
+@Composable
+fun NoSearchResults(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top,
+        modifier = modifier
+            .fillMaxSize()
+
+    ) {
+        Text(
+            text = stringResource(R.string.no_results_found),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.error,
+            modifier = modifier
+                .padding(top = dimensionResource(R.dimen.big_padding))
+        )
+    }
+
 }
 
 @Composable
@@ -161,14 +223,13 @@ fun SearchTrailingIcon(
 fun SearchList(
     flightList: List<airport>,
     onClickSearch: (String) -> Unit,
-    onClickFill: (String) -> Unit
+    onClickFill: (String) -> Unit,
 ) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.big_padding)),
         contentPadding = PaddingValues(
-            top = dimensionResource(R.dimen.big_padding),
             bottom = dimensionResource(R.dimen.big_padding)
-        )
+        ),
     ) {
         items(
             items = flightList,
@@ -209,13 +270,16 @@ fun SearchEntry(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = iconPadding
+                .clickable { onClickSearch(flightEntryText) }
         )
         Text(
             text = flightEntryText,
             style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = modifier.weight(1F)
+            modifier = modifier
+                .weight(1F)
+                .clickable { onClickSearch(flightEntryText) }
         )
         Icon(
             imageVector = Icons.Rounded.Edit,
@@ -230,12 +294,15 @@ fun SearchEntry(
 fun EligibleFlightsList(
     searchedFlight: airport,
     flightList: List<airport>,
+    modifier: Modifier
 ){
     LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.big_padding)),
         contentPadding = PaddingValues(
             top = dimensionResource(R.dimen.big_padding),
-            bottom = dimensionResource(R.dimen.big_padding)
-        )
+            bottom = dimensionResource(R.dimen.big_padding),
+        ),
+        modifier = modifier
     ) {
         items(
             items = flightList,
@@ -253,37 +320,102 @@ fun EligibleFlightsList(
 fun EligibleFlightEntry(
     eligibleFlights: airport,
     searchedFlight: airport,
+    modifier: Modifier = Modifier
 ){
     val textPadding = Modifier.padding(
         start = dimensionResource(R.dimen.medium_padding),
         end = dimensionResource(R.dimen.medium_padding)
     )
-    Card(){
-        Row {
-            Text(
-                text = searchedFlight.iata_code,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = textPadding
-            )
-            Text(
-                text = searchedFlight.name,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = textPadding
-            )
-        }
-        Row() {
-            Text(
-                text = eligibleFlights.iata_code,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = textPadding
-            )
-            Text(
-                text = eligibleFlights.name,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = textPadding
-            )
+    var favorited by remember { mutableStateOf(false) }
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+    ){
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier.fillMaxSize()
+        ) {
+            Column(
+                modifier = modifier.weight(1F)
+            ) {
+                Spacer(modifier = Modifier.padding(dimensionResource(R.dimen.medium_padding)))
+                Text(
+                    text = stringResource(R.string.depart),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = textPadding
+                )
+                Row {
+                    Text(
+                        text = searchedFlight.iata_code,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = textPadding
+                    )
+                    Text(
+                        text = searchedFlight.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = textPadding
+                    )
+                }
+                Spacer(modifier = Modifier.padding(dimensionResource(R.dimen.big_padding)))
+                Text(
+                    text = stringResource(R.string.arrival),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = textPadding
+                )
+                Row() {
+                    Text(
+                        text = eligibleFlights.iata_code,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = textPadding
+                    )
+                    Text(
+                        text = eligibleFlights.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = textPadding
+                    )
+                }
+                Spacer(modifier = Modifier.padding(dimensionResource(R.dimen.medium_padding)))
+            }
+            AnimatedContent(
+                favorited,
+                transitionSpec = {
+                    scaleIn() togetherWith (ExitTransition.None)
+                },
+                label = "favorite"
+            ) {
+                when(it) {
+                    false ->
+                        Image(
+                            imageVector = Icons.Rounded.FavoriteBorder,
+                            contentDescription = stringResource(R.string.favorite),
+                            contentScale = ContentScale.FillBounds,
+                            alignment = Alignment.Center,
+                            modifier = modifier
+                                .padding(end = dimensionResource(R.dimen.big_padding))
+                                .size(50.dp)
+                                .clickable {
+                                    favorited = !favorited
+                                }
+                        )
+                    true ->
+                        Image(
+                            imageVector = Icons.Rounded.Favorite,
+                            contentDescription = stringResource(R.string.unfavorite),
+                            contentScale = ContentScale.FillBounds,
+                            colorFilter = ColorFilter.tint(Color.Red),
+                            alignment = Alignment.Center,
+                            modifier = modifier
+                                .padding(end = dimensionResource(R.dimen.big_padding))
+                                .size(50.dp)
+                                .clickable {
+                                    favorited = !favorited
+                                }
+                        )
+                }
+            }
         }
     }
 }

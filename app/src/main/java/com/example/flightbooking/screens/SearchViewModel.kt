@@ -13,6 +13,7 @@ import com.example.flightbooking.FlightApplication
 import com.example.flightbooking.data.FavoriteRepository
 import com.example.flightbooking.data.airport
 import com.example.flightbooking.data.FlightRepository
+import com.example.flightbooking.data.favorite
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,6 +38,7 @@ class SearchViewModel(
     var searchActive by mutableStateOf(false)
         private set
 
+
     private val _searchText = MutableStateFlow("")
     val searchText = _searchText.asStateFlow()
 
@@ -56,7 +58,27 @@ class SearchViewModel(
         )
 
     suspend fun getEligibleFlights(searchFlight: String) {
-        _eligibleFlights.update { flightRepository.eligibleFlights(searchFlight) }
+    _eligibleFlights.update { flightRepository.eligibleFlights(searchFlight) }
+    }
+
+    suspend fun insertFavorite(departure: String, destination: String) {
+        favoriteRepository.insert(
+            favorite(
+                id = 0,
+                departure_code = departure,
+                destination_code = destination
+            )
+        )
+    }
+
+    suspend fun deleteFavorite(id: Int, departure: String, destination: String) {
+        favoriteRepository.delete(
+            favorite(
+                id = id,
+                departure_code = departure,
+                destination_code = destination
+            )
+        )
     }
 
     fun changeText(input: String) {
