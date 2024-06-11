@@ -144,7 +144,6 @@ fun SearchScreen(
         when(flights.map { it.name}.contains(searchText)) {
             false ->
                 if(searchText.isEmpty()) {
-
                 } else {
                     NoSearchResults()
                 }
@@ -307,6 +306,15 @@ fun SearchEntry(
                 .clickable { onClickFill(flightEntryText) }
         )
     }
+}
+@Composable
+fun FavoriteList(
+
+) {
+    LazyColumn() {
+
+    }
+
 }
 
 @Composable

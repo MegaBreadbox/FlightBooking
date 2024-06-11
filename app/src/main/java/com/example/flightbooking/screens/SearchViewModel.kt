@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
@@ -47,7 +48,8 @@ class SearchViewModel(
 
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val flightsUiState = searchText
+    val flightsUiState = _searchText
+        .filter { searchText -> searchText.isNotBlank() }
         .flatMapLatest {searchText ->
             flightRepository.searchFlight(searchText)
         }
