@@ -11,8 +11,8 @@ interface FavoriteEntryDao {
     @Insert
     suspend fun insert(favorite: favorite)
 
-    @Delete
-    suspend fun delete(favorite: favorite)
+    @Query("DELETE FROM favorite WHERE departure_code = :departure AND destination_code = :destination")
+    suspend fun delete(departure: String, destination: String)
 
     @Query("SELECT * FROM favorite")
     fun favoritesList(): Flow<List<favorite>>

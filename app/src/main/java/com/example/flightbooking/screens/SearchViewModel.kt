@@ -57,8 +57,20 @@ class SearchViewModel(
             initialValue = emptyList()
         )
 
+    val favoriteUiState = favoriteRepository.favorites()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(TIMEOUT_DELAY),
+            initialValue = emptyList()
+        )
+
+    fun validateFavorite(departure: String, destination: String): Boolean {
+        return favoriteUiState.value.map { Pair(it.departure_code, it.destination_code) }
+            .contains(Pair(departure, destination))
+    }
+
     suspend fun getEligibleFlights(searchFlight: String) {
-    _eligibleFlights.update { flightRepository.eligibleFlights(searchFlight) }
+        _eligibleFlights.update { flightRepository.eligibleFlights(searchFlight) }
     }
 
     suspend fun insertFavorite(departure: String, destination: String) {
@@ -71,13 +83,10 @@ class SearchViewModel(
         )
     }
 
-    suspend fun deleteFavorite(id: Int, departure: String, destination: String) {
+    suspend fun deleteFavorite(departure: String, destination: String) {
         favoriteRepository.delete(
-            favorite(
-                id = id,
-                departure_code = departure,
-                destination_code = destination
-            )
+            departure = departure,
+            destination = destination
         )
     }
 
