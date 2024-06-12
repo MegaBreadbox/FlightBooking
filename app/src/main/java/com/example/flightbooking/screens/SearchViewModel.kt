@@ -13,6 +13,7 @@ import com.example.flightbooking.FlightApplication
 import com.example.flightbooking.data.FavoriteRepository
 import com.example.flightbooking.data.airport
 import com.example.flightbooking.data.FlightRepository
+import com.example.flightbooking.data.UserSearchTextRepository
 import com.example.flightbooking.data.favorite
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,10 +31,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class SearchViewModel(
     private val flightRepository: FlightRepository,
-    private val favoriteRepository: FavoriteRepository
+    private val favoriteRepository: FavoriteRepository,
+    private val userSearchTextRepository: UserSearchTextRepository
 ): ViewModel() {
 
     var searchActive by mutableStateOf(false)
@@ -108,9 +111,11 @@ class SearchViewModel(
                 val application = (this[APPLICATION_KEY] as FlightApplication)
                 val flightRepository = application.container.flightRepository
                 val favoriteRepository = application.container.favoriteRepository
+                val userSearchTextRepository = application.container.userSearchTextRepository
                 SearchViewModel(
                     flightRepository = flightRepository,
-                    favoriteRepository = favoriteRepository
+                    favoriteRepository = favoriteRepository,
+                    userSearchTextRepository = userSearchTextRepository
                 )
             }
         }
