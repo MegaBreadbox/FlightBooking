@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flightbooking.R
 import com.example.flightbooking.data.airport
+import com.example.flightbooking.data.favorite
 import com.example.flightbooking.ui.theme.FlightBookingTheme
 import kotlinx.coroutines.launch
 
@@ -144,6 +145,27 @@ fun SearchScreen(
         when(flights.map { it.name}.contains(searchText)) {
             false ->
                 if(searchText.isEmpty()) {
+                    FavoriteList(
+                        favoriteList = favoriteList,
+                        favoriteValidation = { departure, destination -> searchViewModel.validateFavorite(departure, destination) },
+                        onFavoriteClick = { departure, destination ->
+                            coroutineScope.launch {
+                                searchViewModel.insertFavorite(
+                                    destination = destination,
+                                    departure = departure,
+                                )
+                            }
+                        },
+                        onUnfavoriteClick = { departure, destination ->
+                            coroutineScope.launch {
+                                searchViewModel.deleteFavorite(
+                                    departure = departure,
+                                    destination = destination
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1F)
+                    )
                 } else {
                     NoSearchResults()
                 }
@@ -309,10 +331,32 @@ fun SearchEntry(
 }
 @Composable
 fun FavoriteList(
-
+    favoriteList: List<favorite>,
+    favoriteValidation: (String, String) -> Boolean,
+    onFavoriteClick: (String, String) -> Unit,
+    onUnfavoriteClick: (String, String) -> Unit,
+    modifier: Modifier
 ) {
-    LazyColumn() {
-
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.big_padding)),
+        contentPadding = PaddingValues(
+            top = dimensionResource(R.dimen.big_padding),
+            bottom = dimensionResource(R.dimen.big_padding),
+        ),
+        modifier = modifier
+    ) {
+        items(
+            items = favoriteList,
+            key = { it.id }
+        ){
+            EligibleFlightEntry(
+                eligibleFlights = it.destination_code,
+                searchedFlight = it.departure_code,
+                favoriteValidation = { departure, destination -> favoriteValidation(departure, destination) },
+                onFavoriteClick = { departure, destination -> onFavoriteClick(departure, destination) },
+                onUnfavoriteClick = { departure, destination -> onUnfavoriteClick(departure, destination) }
+            )
+        }
     }
 
 }
@@ -339,8 +383,8 @@ fun EligibleFlightsList(
             key = { it.id }
         ) {
             EligibleFlightEntry(
-                eligibleFlights = it,
-                searchedFlight = searchedFlight,
+                eligibleFlights = it.iata_code.plus(" ${it.name}"),
+                searchedFlight = searchedFlight.iata_code.plus(" ${searchedFlight.name}"),
                 favoriteValidation = { departure, destination -> favoriteValidation(departure, destination) },
                 onFavoriteClick = { departure, destination ->
                     onFavoriteClick(departure, destination)
@@ -355,8 +399,8 @@ fun EligibleFlightsList(
 
 @Composable
 fun EligibleFlightEntry(
-    eligibleFlights: airport,
-    searchedFlight: airport,
+    eligibleFlights: String,
+    searchedFlight: String,
     favoriteValidation: (String, String) -> Boolean,
     onFavoriteClick: (String, String) -> Unit,
     onUnfavoriteClick: (String, String) -> Unit,
@@ -366,8 +410,13 @@ fun EligibleFlightEntry(
         start = dimensionResource(R.dimen.medium_padding),
         end = dimensionResource(R.dimen.medium_padding)
     )
+    val searchIataCode = searchedFlight.substring(0..3)
+    val eligibleIataCode = eligibleFlights.substring(0..3)
+    val searchName = searchedFlight.substring(4)
+    val eligibleName = eligibleFlights.substring(4)
+
     var favorited by rememberSaveable { mutableStateOf(
-        favoriteValidation(searchedFlight.iata_code, eligibleFlights.iata_code)
+        favoriteValidation(searchedFlight, eligibleFlights)
     ) }
     Card(
         modifier = modifier
@@ -389,13 +438,13 @@ fun EligibleFlightEntry(
                 )
                 Row {
                     Text(
-                        text = searchedFlight.iata_code,
+                        text = searchIataCode,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = textPadding
                     )
                     Text(
-                        text = searchedFlight.name,
+                        text = searchName,
                         style = MaterialTheme.typography.titleMedium,
                         modifier = textPadding
                     )
@@ -408,13 +457,13 @@ fun EligibleFlightEntry(
                 )
                 Row() {
                     Text(
-                        text = eligibleFlights.iata_code,
+                        text = eligibleIataCode,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = textPadding
                     )
                     Text(
-                        text = eligibleFlights.name,
+                        text = eligibleName,
                         style = MaterialTheme.typography.titleMedium,
                         modifier = textPadding
                     )
@@ -440,7 +489,10 @@ fun EligibleFlightEntry(
                                 .size(50.dp)
                                 .clickable {
                                     favorited = !favorited
-                                    onFavoriteClick(searchedFlight.iata_code, eligibleFlights.iata_code)
+                                    onFavoriteClick(
+                                        searchedFlight,
+                                        eligibleFlights
+                                    )
                                 }
                         )
                     true ->
@@ -455,7 +507,10 @@ fun EligibleFlightEntry(
                                 .size(50.dp)
                                 .clickable {
                                     favorited = !favorited
-                                    onUnfavoriteClick(searchedFlight.iata_code, eligibleFlights.iata_code)
+                                    onUnfavoriteClick(
+                                        searchedFlight,
+                                        eligibleFlights
+                                    )
                                 }
                         )
                 }
@@ -467,15 +522,15 @@ fun EligibleFlightEntry(
 @Preview(showBackground = true)
 fun EligibleFlightPreview() {
     FlightBookingTheme {
-        val airport: airport = airport(
+        val airport = airport(
             id = 1,
             iata_code = "AAA",
             name = "Airport Name",
             passengers = 100
         )
         EligibleFlightEntry(
-            eligibleFlights = airport,
-            searchedFlight = airport,
+            eligibleFlights = airport.name.plus(" ${airport.iata_code}"),
+            searchedFlight = airport.name.plus(" ${airport.iata_code}"),
             onFavoriteClick = { a1, a2 -> },
             onUnfavoriteClick = {a1, a2 -> },
             favoriteValidation = {a1, a2 -> true}
