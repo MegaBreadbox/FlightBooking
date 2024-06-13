@@ -18,18 +18,11 @@ import com.example.flightbooking.data.favorite
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flattenConcat
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -69,6 +62,14 @@ class SearchViewModel(
             initialValue = emptyList()
         )
 
+    init {
+        viewModelScope.launch {
+            _searchText.update {
+                userSearchTextRepository.searchTextData.first()
+            }
+        }
+    }
+
     fun validateFavorite(departure: String, destination: String): Boolean {
         return favoriteUiState.value.map { Pair(it.departure_code, it.destination_code) }
             .contains(Pair(departure, destination))
@@ -97,6 +98,9 @@ class SearchViewModel(
 
     fun changeText(input: String) {
         _searchText.update { input }
+        viewModelScope.launch {
+            userSearchTextRepository.setSearchText(input)
+        }
     }
 
     fun changeActive(input: Boolean) {
